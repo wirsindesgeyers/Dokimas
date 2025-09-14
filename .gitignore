@@ -1,0 +1,40 @@
+# Arquivos do Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+*.manifest
+*.spec
+
+# Virtual environment
+venv/
+ENV/
+env/
+.venv/
+
+# IDEs e configs locais
+.vscode/
+.idea/
+*.swp
+
+# Arquivos de log
+*.log
+
+# Cache de testes
+.pytest_cache/
+.tox/
+coverage/
+htmlcov/
+
+# Banco de dados local (caso use sqlite)
+*.db
+*.sqlite3
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+
