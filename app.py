@@ -1,23 +1,34 @@
 from flask import Flask, render_template, request, redirect, url_for
-import json
-import os
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-QUIZ_FILE = 'quizzes.json'
+# Configuração do SQLite
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///quizmaster.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
 # ------------------------
-# Funções auxiliares
+# Modelos
 # ------------------------
-def ler_quizzes():
-    if not os.path.exists(QUIZ_FILE):
-        return []
-    with open(QUIZ_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
+class Quiz(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(200), nullable=False)
+    perguntas = db.relationship('Pergunta', backref='quiz', cascade="all, delete-orphan")
+    respostas_alunos = db.relationship('RespostaAluno', backref='quiz', cascade="all, delete-orphan")
 
-def salvar_quizzes(quizzes):
-    with open(QUIZ_FILE, 'w', encoding='utf-8') as f:
-        json.dump(quizzes, f, indent=4, ensure_ascii=False)
+class Pergunta(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
+    pergunta = db.Column(db.String(500), nullable=False)
+    opcoes = db.Column(db.PickleType, nullable=False)  # Lista de opções
+    correta = db.Column(db.Integer, nullable=False)
+
+class RespostaAluno(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
+    nick = db.Column(db.String(50), nullable=False)
+    acertos = db.Column(db.Integer, nullable=False)
 
 # ------------------------
 # Rotas principais
@@ -27,105 +38,92 @@ def salvar_quizzes(quizzes):
 def index():
     return render_template('home.html')
 
-# Criar quiz
 @app.route('/criar_quiz', methods=['GET', 'POST'])
 def criar_quiz():
     if request.method == 'POST':
         titulo = request.form.get("titulo")
-        perguntas = []
+        perguntas_texto = request.form.getlist("pergunta[]")
+        opcoes1 = request.form.getlist("opcao1[]")
+        opcoes2 = request.form.getlist("opcao2[]")
+        opcoes3 = request.form.getlist("opcao3[]")
+        opcoes4 = request.form.getlist("opcao4[]")
 
-        # Vamos assumir 5 perguntas fixas (como no HTML que te mandei)
-        for i in range(1, 6):
-            texto = request.form.get(f"pergunta{i}")
-            if not texto:  # se não preencher, pula
-                continue
+        # cria o quiz principal
+        quiz = Quiz(titulo=titulo)
+        db.session.add(quiz)
+        db.session.commit()  # gera o ID do quiz
 
-            opcoes = [
-                request.form.get(f"pergunta{i}_opcao1"),
-                request.form.get(f"pergunta{i}_opcao2"),
-                request.form.get(f"pergunta{i}_opcao3"),
-                request.form.get(f"pergunta{i}_opcao4"),
-            ]
-            correta = request.form.get(f"pergunta{i}_correta")
+        # agora cria as perguntas
+        for i in range(len(perguntas_texto)):
+            # pega o índice da resposta correta para esta pergunta
+            correta = request.form.get(f"correta[{i}]")
+            if correta is None:
+                correta = 0  # fallback
+            else:
+                correta = int(correta)
 
-            perguntas.append({
-                "pergunta": texto,
-                "opcoes": opcoes,
-                "correta": int(correta) if correta is not None else 0
-            })
+            # cria objeto Pergunta
+            pergunta = Pergunta(
+                quiz_id=quiz.id,
+                pergunta=perguntas_texto[i],
+                opcoes=[opcoes1[i], opcoes2[i], opcoes3[i], opcoes4[i]],
+                correta=correta
+            )
+            db.session.add(pergunta)
 
-        # Salvar no JSON
-        quizzes = ler_quizzes()
-        quizzes.append({
-            "titulo": titulo,
-            "perguntas": perguntas,
-            "respostas_alunos": []
-        })
-        salvar_quizzes(quizzes)
-
+        db.session.commit()
         return redirect(url_for('index'))
-
+    
     return render_template('criar_quiz.html')
 
-# Listar quizzes para escolher
 @app.route('/responder')
 def responder():
-    quizzes = ler_quizzes()
+    quizzes = Quiz.query.all()
     return render_template('responder_lista.html', quizzes=quizzes)
 
-# Responder quiz específico
-@app.route('/responder/<int:quiz_index>')
-def responder_quiz(quiz_index):
-    quizzes = ler_quizzes()
-    if quiz_index >= len(quizzes):
-        return "Quiz não encontrado", 404
-    quiz = quizzes[quiz_index]
-    return render_template('responder_quiz.html', quiz=quiz, quiz_index=quiz_index)
+@app.route('/responder/<int:quiz_id>', methods=['GET'])
+def responder_quiz(quiz_id):
+    quiz = Quiz.query.get_or_404(quiz_id)
+    return render_template('responder_quiz.html', quiz=quiz)
 
-# Enviar respostas de um quiz
-@app.route('/enviar_resposta/<int:quiz_index>', methods=['POST'])
-def enviar_resposta(quiz_index):
+@app.route('/enviar_resposta/<int:quiz_id>', methods=['POST'])
+def enviar_resposta(quiz_id):
+    quiz = Quiz.query.get_or_404(quiz_id)
     nick = request.form.get("nick")
-    quizzes = ler_quizzes()
 
-    if quiz_index >= len(quizzes):
-        return "Quiz não encontrado", 404
-
-    quiz = quizzes[quiz_index]
-    perguntas = quiz["perguntas"]
-
+    perguntas = quiz.perguntas
     acertos = 0
-    respostas_usuario = []
 
     for i, pergunta in enumerate(perguntas):
         chave = f"resposta[{i}]"
         resposta_usuario = request.form.get(chave)
+        if resposta_usuario is not None and int(resposta_usuario) == pergunta.correta:
+            acertos += 1
 
-        if resposta_usuario is not None:
-            resposta_usuario = int(resposta_usuario)
-            respostas_usuario.append(resposta_usuario)
-            if resposta_usuario == pergunta["correta"]:
-                acertos += 1
+    resposta_aluno = RespostaAluno(quiz_id=quiz.id, nick=nick, acertos=acertos)
+    db.session.add(resposta_aluno)
+    db.session.commit()
 
-    quiz["respostas_alunos"].append({"nick": nick, "acertos": acertos})
-    salvar_quizzes(quizzes)
+    return render_template('resultado.html', nick=nick, quiz=quiz, total=len(perguntas), acertos=acertos)
 
-    return render_template(
-        "resultado.html",
-        nick=nick,
-        quiz=quiz,
-        total=len(perguntas),
-        acertos=acertos
-    )
+@app.route('/deletar_quiz/<int:quiz_id>', methods=['POST'])
+def deletar_quiz(quiz_id):
+    quiz = Quiz.query.get_or_404(quiz_id)
+    db.session.delete(quiz)
+    db.session.commit()
+    return redirect(url_for('dashboard'))
 
-# Dashboard para ver desempenho dos alunos
+
+
 @app.route('/dashboard')
 def dashboard():
-    quizzes = ler_quizzes()
+    quizzes = Quiz.query.all()
     return render_template('dashboard.html', quizzes=quizzes)
 
 # ------------------------
-# Inicialização
+# Inicialização do DB
 # ------------------------
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()  # Cria tabelas se não existirem
     app.run(debug=True)

@@ -1,0 +1,16 @@
+body {
+    background-image: url('/static/fundoroxoplain.jpg'); /* substitua pelo seu arquivo */
+    background-size: cover;       /* faz a imagem preencher a tela inteira */
+    background-position: center;  /* centraliza a imagem */
+    background-repeat: no-repeat; /* evita repetição */
+    min-height: 100vh;
+    padding: 2rem;            /* garante que o body ocupe toda a altura da tela */
+}
+
+
+h1 {
+    color: #ffffff; /* branco */
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.5); /* sombra preta suave */
+    font-weight: 700;
+    text-align: center;
+}
