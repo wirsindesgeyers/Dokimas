@@ -102,7 +102,7 @@
         <p>Nenhum aluno respondeu ainda.</p>
         {% endif %}
 
-        <!-- Botão de deletar quiz -->
+        
         <form action="{{ url_for('deletar_quiz', quiz_id=quiz.id) }}" method="POST" style="margin:0;">
             <button type="submit" class="btn-gradient btn-delete">Deletar</button>
         </form>

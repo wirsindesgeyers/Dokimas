@@ -3,14 +3,14 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-# Configuração do SQLite
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///quizmaster.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# ------------------------
-# Modelos
-# ------------------------
+
+
+
 class Quiz(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200), nullable=False)
@@ -30,9 +30,9 @@ class RespostaAluno(db.Model):
     nick = db.Column(db.String(50), nullable=False)
     acertos = db.Column(db.Integer, nullable=False)
 
-# ------------------------
-# Rotas principais
-# ------------------------
+
+
+
 
 @app.route('/')
 def index():
@@ -58,11 +58,11 @@ def criar_quiz():
             # pega o índice da resposta correta para esta pergunta
             correta = request.form.get(f"correta[{i}]")
             if correta is None:
-                correta = 0  # fallback
+                correta = 0  
             else:
                 correta = int(correta)
 
-            # cria objeto Pergunta
+            
             pergunta = Pergunta(
                 quiz_id=quiz.id,
                 pergunta=perguntas_texto[i],
@@ -120,10 +120,8 @@ def dashboard():
     quizzes = Quiz.query.all()
     return render_template('dashboard.html', quizzes=quizzes)
 
-# ------------------------
-# Inicialização do DB
-# ------------------------
+
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()  # Cria tabelas se não existirem
+        db.create_all()  
     app.run(debug=True)

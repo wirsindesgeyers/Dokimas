@@ -65,7 +65,7 @@
                 {% set idx = loop.index0 %}  {# salva o índice da pergunta #}
                 {% for opcao in pergunta.opcoes %}
                     <div class="form-check">
-                        <!-- Cada pergunta tem seu próprio grupo de radio buttons -->
+                        
                         <input class="form-check-input" type="radio" 
                                name="resposta[{{ idx }}]" 
                                value="{{ loop.index0 }}" required>
