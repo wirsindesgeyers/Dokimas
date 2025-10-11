@@ -11,6 +11,7 @@ db = SQLAlchemy(app)
 
 
 
+#tabelas
 class Quiz(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200), nullable=False)
@@ -33,7 +34,7 @@ class RespostaAluno(db.Model):
 
 
 
-
+#Controller
 @app.route('/')
 def index():
     return render_template('home.html')
@@ -48,7 +49,7 @@ def criar_quiz():
         opcoes3 = request.form.getlist("opcao3[]")
         opcoes4 = request.form.getlist("opcao4[]")
 
-        # cria o quiz principal
+        # cria o quiz 
         quiz = Quiz(titulo=titulo)
         db.session.add(quiz)
         db.session.commit()  # gera o ID do quiz
@@ -121,6 +122,8 @@ def dashboard():
     return render_template('dashboard.html', quizzes=quizzes)
 
 
+
+#cria o banco de dados
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  
