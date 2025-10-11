@@ -1,7 +1,7 @@
 QuizMaster - Backend
 
 Sistema de quizzes em Flask para criação e resposta de questionários.
-Tecnologias
+Tecnologias:
 
     Python 3.8+
 
@@ -14,8 +14,7 @@ Tecnologias
  Como usar:
 
 # Instalar dependências
-pip install flask flask-sqlalchemy
-
+pip install -r requirements.txt
 # Executar
 python app.py
 
