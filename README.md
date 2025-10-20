@@ -19,6 +19,7 @@ pip install -r requirements.txt
 python app.py
 
 Acesse: http://localhost:5000
+
 Funcionalidades
 
     ✅ Criar quizzes com múltiplas perguntas
